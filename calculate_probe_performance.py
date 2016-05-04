@@ -1,18 +1,18 @@
 '''
-Created on 29 Apr 2016
+Created on 04 May 2016
 
 @author: ajones7
 '''
 import os
 import MySQLdb
 import numpy as np
-from numpy import median
-from zmq.backend.cython.constants import PROBE_ROUTER
+from string import rstrip
 
 class ISCA():
     def __init__(self):
         self.arrayfolder="S:\\Genetics_Data2\\Array\\Audits and Projects\\160421 ArrayCGH v4.0 Design\\ISCA FE Files"
         self.output_folder="S:\\Genetics_Data2\\Array\\Audits and Projects\\160421 ArrayCGH v4.0 Design"
+        self.exclude="S:\\Genetics_Data2\\Array\\Audits and Projects\\160421 ArrayCGH v4.0 Design\\ExcludeProbes.txt"
         # define parameters used when connecting to database
         self.host = "localhost"
         self.port = int(3306)
@@ -21,13 +21,16 @@ class ISCA():
         self.database = "array"
         
         #table containing isca probes
-        self.isca_table="shox"#"nrxn1" #, shox, eichler_selected_probes"
+        self.isca_table="isca_60k_targetted"#"nrxn1" #, shox, eichler_selected_probes", "nrxn_17q11_2","baylor_genes_probes","cgh_par3","v2_41_replacements"
         
         # dict to store the probes and the log ratios
         self.dictionary={}
+        self.dictionary2={}
         
         # Create an array to store all the files in.
         self.chosenfiles = []
+        
+        self.exclude_probes=[]
 
 
     def get_isca_probes(self):
@@ -48,11 +51,21 @@ class ISCA():
                 raise
         finally:
             db.close()
-
+        
+        exclude_file = open(self.exclude, 'r')
+        
+        for j in exclude_file:
+            j=str(j.rstrip())
+            self.exclude_probes.append(j)
+        
+        #print self.exclude_probes
+        
         for i in probelist:
             probename = i[0]
-            self.dictionary[probename]=[]
-            self.dictionary2={}
+            if probename not in self.exclude_probes:
+                #print "excluded "+str(probename)
+                self.dictionary[probename]=[]
+        
         
         #print self.dictionary
     
@@ -77,13 +90,13 @@ class ISCA():
                             self.dictionary2[probename_coord].append(logratio)
                         else:
                             self.dictionary2[probename_coord]=[logratio]
-                            
+                                
                             
         # print self.dictionary
         
 # calculate the spread of each probe
     def stats(self):
-        output_file = open(self.output_folder + "\\"+self.isca_table+"_stats.txt", 'w+')
+        output_file = open(self.output_folder + "\\"+self.isca_table+"_stats_excluded.txt", 'w+')
         for probe in self.dictionary2:
             splitprobename=probe.split("^")
             probename=splitprobename[0]
